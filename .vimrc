@@ -20,6 +20,13 @@ call plug#begin('~/.vim/autoload/plugged')
   Plug 'dracula/vim', { 'as': 'dracula' }
   Plug 'arcticicestudio/nord-vim'
   Plug 'jnurmine/zenburn'
+  Plug 'chriskempson/base16-vim'
+  Plug 'rakr/vim-one'
+  Plug 'mhartington/oceanic-next'
+  Plug 'drewtempelmeyer/palenight.vim'
+  Plug 'ayu-theme/ayu-vim'
+  Plug 'kyoz/purify', { 'rtp': 'vim' }
+  Plug 'joshdick/onedark.vim'
 
   " UI
   Plug 'vim-airline/vim-airline'
@@ -47,7 +54,13 @@ set nocompatible
 syntax on
 filetype plugin indent on
 
-colorscheme dracula
+if has('nvim')
+  colorscheme zenburn
+elseif has('gui_running')
+  colorscheme nord
+else
+  colorscheme dracula
+endif
 
 set encoding=utf-8
 set fileencoding=utf-8
@@ -139,6 +152,42 @@ if !isdirectory(&undodir)   | call mkdir(&undodir, 'p', 0700)   | endif
 let &t_SI.="\e[5 q"  " INSERT  — blinking bar
 let &t_SR.="\e[4 q"  " REPLACE — solid underscore
 let &t_EI.="\e[1 q"  " NORMAL  — blinking block
+
+" }}}
+" =============================================================
+" {{{ GUI and Terminal Settings
+" =============================================================
+
+if has('vim') || has('termguicolors')
+  set termguicolors
+elseif has('nvim') || has('termguicolors')
+  set termguicolors
+endif
+
+if &term == "alacritty"
+  let &term = "xterm-256color"
+endif
+
+if !has('vim') || &term == "rxvt-unicode-256color"
+  set notermguicolors
+endif
+
+if has("gui_running")
+  set guioptions-=T
+  set guioptions-=e
+  set t_Co=256
+  set guitablabel=%M\ %t
+  if has("gui_macvim")
+    set guifont=agave\ Nerd\ Font\ Mono:h18
+  elseif has("gui_gtk3")
+    set guifont=agave\ Nerd\ Font\ Mono\ 13
+    set lines=40 columns=100
+  endif
+  hi Normal guibg=#1c2023
+  autocmd GUIEnter * set vb t_vb=
+else
+  autocmd vimenter * hi Normal guibg=NONE ctermbg=NONE
+endif
 
 " }}}
 " =============================================================

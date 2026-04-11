@@ -44,25 +44,35 @@ done
 chown -R dev:dev /home/dev
 
 # ---------------------------------------------------------------------------
-# 3. First-run shell bootstrap
+# 3. Shell bootstrap
+#    Always copy .bashrc and .vimrc from the image unless the user has
+#    replaced them with symlinks (i.e. pointing to workspace/dotfiles/).
+#    This ensures rebuilds always pick up the latest versions.
+#    .bash_profile is only written once.
 # ---------------------------------------------------------------------------
 MARKER="$HOME/.physicsbox-container"
 
+# Write .bash_profile once
 if [ ! -f "$MARKER" ]; then
   touch "$MARKER"
-
-  # .bash_profile - sources .bashrc for login shells
   cat > "$HOME/.bash_profile" <<'EOF'
 export PATH=/opt/conda/bin:$PATH
 export CONDA_PREFIX=/opt/conda
 [[ -f ~/.bashrc ]] && source ~/.bashrc
 EOF
+  chown dev:dev "$HOME/.bash_profile" "$MARKER"
+fi
 
-  # .bashrc and .vimrc - copied from image
+# Always sync .bashrc from image unless it's a symlink
+if [ ! -L "$HOME/.bashrc" ]; then
   cp /etc/physicsbox/bashrc "$HOME/.bashrc"
-  cp /etc/physicsbox/vimrc  "$HOME/.vimrc"
+  chown dev:dev "$HOME/.bashrc"
+fi
 
-  chown dev:dev "$HOME/.bash_profile" "$HOME/.bashrc" "$HOME/.vimrc" "$MARKER"
+# Always sync .vimrc from image unless it's a symlink
+if [ ! -L "$HOME/.vimrc" ]; then
+  cp /etc/physicsbox/vimrc "$HOME/.vimrc"
+  chown dev:dev "$HOME/.vimrc"
 fi
 
 # ---------------------------------------------------------------------------
