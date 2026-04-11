@@ -1,0 +1,35 @@
+# =============================================================================
+# .gitignore - PhysicsBox
+# =============================================================================
+
+# Local work - not shared via git
+workspace/
+shared/
+
+# VS Code local settings (devcontainer.json is committed, these are not)
+.vscode/
+
+# C build artifacts
+*.o
+*.a
+*.so
+*.out
+build/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Logs
+*.log

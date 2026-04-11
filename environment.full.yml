@@ -1,0 +1,33 @@
+name: physicsbox
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - numpy
+  - scipy
+  - sympy
+  - pandas
+  - matplotlib
+  - seaborn
+  - statsmodels
+  - uncertainties
+  - astropy
+  - h5py
+  - plotly
+  - jupyterlab
+  - ipywidgets
+  - ipykernel
+  - ipython
+  - scikit-learn
+  - numba
+  - bottleneck
+  - pyarrow
+  - dask-core
+  - fsspec
+  - s3fs
+  - streamlit
+  - notebook
+  - pip:
+    - brotli
+    - wordcloud

@@ -1,0 +1,26 @@
+{
+  "name": "physicsbox",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "physicsbox",
+  "workspaceFolder": "/workspace",
+  "remoteUser": "dev",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.pylance",
+        "ms-toolsai.jupyter",
+        "llvm-vs-code-extensions.vscode-clangd",
+        "ms-vscode.cmake-tools",
+        "twxs.cmake",
+        "Zwyx.remotetrash"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/opt/conda/envs/physicsbox/bin/python",
+        "python.terminal.activateEnvironment": true,
+        "python.terminal.activateEnvInCurrentTerminal": true,
+        "jupyter.jupyterServerType": "local"
+      }
+    }
+  }
+}

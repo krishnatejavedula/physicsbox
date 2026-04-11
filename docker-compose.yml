@@ -1,0 +1,70 @@
+name: physicsbox
+
+# =============================================================================
+# docker-compose.yml — Physics Dev Container
+# =============================================================================
+# Usage:
+#   Start (interactive):  docker compose run --rm physicsbox
+#   Start (detached):     docker compose up -d physicsbox
+#   Jupyter Lab:          docker compose up physicsbox
+#                         then open http://localhost:8888
+#
+# Shared folders (created automatically beside this file):
+#   ./workspace/   — your source code and projects (bind-mounted to /workspace)
+#   ./shared/      — data files, datasets, outputs   (bind-mounted to /shared)
+#
+# Portability:
+#   HOST_USER_ID is passed so file ownership in bind mounts matches your host
+#   user on both Mac (Docker Desktop) and Linux. The default is 1000.
+#   On Linux you can export it before running: export HOST_USER_ID=$(id -u)
+# =============================================================================
+
+services:
+
+  physicsbox:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: physicsbox:latest
+    container_name: physicsbox
+
+    environment:
+      # Matches container dev UID to host UID — prevents permission issues
+      # on Linux bind mounts. Docker Desktop on Mac handles this automatically.
+      - HOST_USER_ID=${HOST_USER_ID:-1000}
+
+    volumes:
+      # Your code — survives container rebuilds, portable between machines
+      - ./workspace:/workspace
+      # Large data files, outputs, datasets — keep separate from code
+      - ./shared:/shared
+      # Persist conda package cache between runs to speed up rebuilds
+      - conda-pkgs:/opt/conda/pkgs
+
+    ports:
+      # JupyterLab
+      - "8888:8888"
+      # code-server (VS Code in browser), if installed
+      - "8080:8080"
+
+    # Keep stdin open so `docker compose run` gives you an interactive shell
+    stdin_open: true
+    tty: true
+
+    # Resource limits — adjust to taste
+    # Uncomment if you want to cap the container on a shared machine
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '4'
+    #       memory: 8G
+
+    restart: "no"    # Don't auto-restart — this is a dev environment, not a service
+
+# =============================================================================
+# Named volumes
+# =============================================================================
+volumes:
+  # Persistent conda package cache — avoids re-downloading packages on rebuild
+  conda-pkgs:
