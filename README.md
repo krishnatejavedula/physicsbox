@@ -1,4 +1,5 @@
 # PhysicsBox
+
 ![CI](https://github.com/krishnatejavedula/physicsbox/actions/workflows/ci.yml/badge.svg)
 ![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)
 
@@ -21,7 +22,6 @@ To see everything installed:
 ```bash
 conda list -n physicsbox
 ```
-
 
 ---
 
@@ -52,8 +52,14 @@ conda list -n physicsbox
 ```
 physicsbox/
 ├── .devcontainer/
-│   └── devcontainer.json        # VS Code Dev Containers configuration
-├── workspace/                   # Your code - bind-mounted into the container
+│   └── devcontainer.json            # VS Code Dev Containers configuration
+├── .github/workflows/
+│   └── ci.yml                       # GitHub Actions CI
+├── tests/
+│   ├── test_python.sh               # Python environment tests
+│   ├── test_c.sh                    # C toolchain tests
+│   └── test_packages.sh             # Conda package integrity tests
+├── workspace/                       # Your code - bind-mounted into the container
 ├── shared/                          # Data files and outputs - bind-mounted into the container
 ├── Dockerfile                       # Multistage image definition
 ├── entrypoint.sh                    # Container startup script
@@ -62,6 +68,7 @@ physicsbox/
 ├── environment.lean.yml             # Lean conda environment
 ├── environment.full.yml             # Full conda environment
 ├── .bashrc                          # Shell configuration baked into the image
+├── Makefile                         # Common task shortcuts
 ├── setup.sh                         # Management script
 └── README.md
 ```
@@ -93,7 +100,7 @@ services:
 Then restart the container:
 
 ```bash
-docker compose down && docker compose up -d
+make restart
 ```
 
 `docker-compose.override.yml` is gitignored - it stays on your machine and is never committed to the repo. The `.example` file is the shared template.
@@ -106,7 +113,7 @@ docker compose down && docker compose up -d
 git clone https://github.com/krishnatejavedula/physicsbox.git ~/Apps/physicsbox
 cd ~/Apps/physicsbox
 chmod +x setup.sh entrypoint.sh
-./setup.sh --install
+make install
 ```
 
 Then open in VS Code:
@@ -122,9 +129,11 @@ VS Code will prompt **Reopen in Container** in the bottom-right corner. Click it
 ## Daily use
 
 ```bash
-docker compose up -d        # start the container
-docker compose stop         # stop it
-code ~/Apps/physicsbox      # open in VS Code - attaches to the running container
+make start      # start the container
+make stop       # stop it
+make shell      # open a shell inside the container
+make notebook   # launch JupyterLab in the browser
+make status     # show container status and image size
 ```
 
 Open a terminal inside VS Code with `` Ctrl+` ``. You will land at:
@@ -133,13 +142,7 @@ Open a terminal inside VS Code with `` Ctrl+` ``. You will land at:
 (physicsbox) dev@physicsbox:/workspace$
 ```
 
-To launch JupyterLab:
-
-```bash
-notebook
-```
-
-Then open [http://localhost:8888](http://localhost:8888) in your browser.
+Run `make help` from the `physicsbox/` folder at any time to see all available commands.
 
 ---
 
@@ -289,19 +292,10 @@ conda install astroml -c conda-forge
 
 ### Python packages - permanent
 
-To make a package part of the image permanently, add it to the `mamba create` block in the `Dockerfile` (mamba is used internally in the Dockerfile for speed - conda commands are for day-to-day use inside the container):
-
-```dockerfile
-RUN mamba create -n physicsbox python=3.11 \
-        ...
-        lmfit \          # ← add your package here
-        -c conda-forge && \
-```
-
-Then rebuild:
+Add the package to `environment.lean.yml` or `environment.full.yml` and rebuild:
 
 ```bash
-./setup.sh --rebuild
+make rebuild
 ```
 
 ### System libraries - temporary
@@ -317,15 +311,15 @@ Lost on rebuild. For anything you use regularly, make it permanent.
 Add the package to the `apt-get install` block in the `Dockerfile`:
 
 ```dockerfile
-RUN apt-get install -y --no-install-recommends \
-        ...
-        libgoogle-perftools-dev \    # ← add here
+    RUN apt-get install -y --no-install-recommends \
+            ...
+            libgoogle-perftools-dev \ # ← add here
 ```
 
 Then rebuild:
 
 ```bash
-./setup.sh --rebuild
+make rebuild
 ```
 
 ---
@@ -372,7 +366,7 @@ conda env remove -n myenv
 
 ### Make a new environment persistent
 
-Additional environments created at runtime are lost on rebuild since they live inside the container's filesystem. To make one permanent, add a second `mamba create` block in the `Dockerfile` after the existing one:
+Additional environments created at runtime are lost on rebuild. To make one permanent, add a second `mamba create` block in the `Dockerfile` after the existing one:
 
 ```dockerfile
 RUN mamba create -n myenv python=3.11 \
@@ -385,7 +379,7 @@ RUN mamba create -n myenv python=3.11 \
 Then rebuild:
 
 ```bash
-./setup.sh --rebuild
+make rebuild
 ```
 
 ---
@@ -411,7 +405,9 @@ Add to the bottom of `~/.bashrc` to pick up your local overrides:
 
 ---
 
-## setup.sh reference
+## setup.sh and make reference
+
+`make help` shows all available commands. The full `setup.sh` flags are:
 
 ```
 ./setup.sh --install [lean|full]           First-time setup (default: lean)
@@ -428,38 +424,21 @@ Add to the bottom of `~/.bashrc` to pick up your local overrides:
 | `full` | Everything in lean + pandas, sympy, seaborn, statsmodels, uncertainties, astropy, h5py, plotly, scikit-learn, numba, dask, pyarrow, streamlit, s3fs, brotli, wordcloud | ~4.5 GB |
 
 ```bash
-# First time
-./setup.sh --install              # lean - recommended for students
-./setup.sh --install full         # full - for your own machine
-
-# After changing Dockerfile, .bashrc, .vimrc, or environment files
-./setup.sh --rebuild              # lean, cached (fast)
-./setup.sh --rebuild full         # full, cached
-./setup.sh --rebuild --clean      # lean, no cache (thorough)
-./setup.sh --rebuild full --clean # full, no cache
-
-# Maintenance
-./setup.sh --doctor               # check everything is healthy
-./setup.sh --uninstall            # free up disk space (files untouched)
+make install           # lean - recommended for students
+make install-full      # full - for your own machine
+make rebuild           # rebuild lean, cached (fast)
+make rebuild-full      # rebuild full, cached
+make rebuild-clean     # lean, no cache (thorough)
+make doctor            # check everything is healthy
+make uninstall         # free up disk space (files untouched)
 ```
 
-### --rebuild and image cleanup
+### Image cleanup
 
-Every time you rebuild, Docker keeps the old image layers on disk as dangling images - unnamed, untagged leftovers that are no longer referenced by anything. Over multiple rebuilds these accumulate and waste significant disk space.
-
-`--rebuild` automatically removes them after each build using `docker image prune`. This is safe - it only targets dangling layers and will never touch your named `physicsbox:latest` image, any other images on your machine, your containers, or your volumes and files.
-
-You can check what's on disk at any time:
+Every rebuild keeps old layers on disk as dangling images. `make rebuild` removes them automatically. To clean up manually:
 
 ```bash
-docker images              # all images including dangling
-docker system df           # total disk usage by images, containers, volumes
-```
-
-To manually clean up dangling images without rebuilding:
-
-```bash
-docker image prune
+make clean
 ```
 
 ---
@@ -470,7 +449,7 @@ On Linux, export your host UID before starting the container to avoid permission
 
 ```bash
 export HOST_USER_ID=$(id -u)
-docker compose up -d
+make start
 ```
 
 Add it to your `~/.bashrc` so it is always set. On macOS and Windows this is handled automatically.
@@ -482,9 +461,9 @@ Add it to your `~/.bashrc` so it is always set. On macOS and Windows this is han
 **Files created inside VS Code don't appear on the host.**
 This happens if `workspace/` didn't exist before the first `docker compose up`. Fix:
 ```bash
-docker compose down && docker compose up -d
+docker compose down && make start
 ```
-Using `./setup.sh --install` prevents this entirely.
+Using `make install` prevents this entirely.
 
 **Container fails to start - entrypoint error.**
 ```bash
@@ -529,7 +508,7 @@ git checkout -- deleted_file.c    # restore a deleted file
 ## Uninstalling
 
 ```bash
-./setup.sh --uninstall
+make uninstall
 ```
 
-Removes the image and container. `workspace/` and `shared/` are untouched. Run `./setup.sh --install` to restore.
+Removes the image and container. `workspace/` and `shared/` are untouched. Run `make install` to restore.
