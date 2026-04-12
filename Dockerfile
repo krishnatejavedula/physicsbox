@@ -107,16 +107,27 @@ RUN apt-get update && \
         bat \
         gnuplot \
         gnuplot-x11 \
+        texlive-font-utils \
+        ghostscript \
         libx11-6 \
         libxext6 \
         libxrender1 \
         libxt6 \
         libgl1 \
+        locales \
         perl \
         ncurses-bin \
         trash-cli && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && \
+    locale-gen en_US.UTF-8 && \
+    dpkg-reconfigure --frontend=noninteractive locales && \
+    update-locale LANG=en_US.UTF-8
+
+ENV LANG en_US.UTF-8  
+ENV LANGUAGE en_US:en   
+ENV LC_ALL en_US.UTF-8
 
 # Create wheel group and dev user
 # USER stays root so the entrypoint can handle dynamic UID remapping.

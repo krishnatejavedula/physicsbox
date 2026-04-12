@@ -1,4 +1,8 @@
 {
+  // physicsbox devcontainer configuration
+  // VS Code Dev Container for C and Python physics/math/stats work.
+  // Designed for use with VS Code Dev Containers on Mac and Linux.
+  // See Dockerfile for build details and package list.
   "name": "physicsbox",
   "dockerComposeFile": "../docker-compose.yml",
   "service": "physicsbox",
@@ -7,12 +11,29 @@
   "customizations": {
     "vscode": {
       "extensions": [
+        // Python
         "ms-python.python",
-        "ms-python.pylance",
+        "ms-python.vscode-pylance",
+        "ms-python.debugpy",
+        "ms-python.black-formatter",
+        "ms-python.flake8",
+        "ms-python.isort",
+        // Jupyter
         "ms-toolsai.jupyter",
-        "llvm-vs-code-extensions.vscode-clangd",
+        "ms-toolsai.jupyter-keymap",
+        "ms-toolsai.jupyter-renderers",
+        // C/C++ & CMake
+        "ms-vscode.cpptools",
         "ms-vscode.cmake-tools",
         "twxs.cmake",
+        // Gnuplot
+        "mammothb.gnuplot",
+        // Utilities
+        "eamodio.gitlens",
+        "mechatroner.rainbow-csv",
+        "mathematic.vscode-pdf",
+        "yzhang.markdown-all-in-one",
+        "continue.continue",
         "Zwyx.remotetrash"
       ],
       "settings": {
