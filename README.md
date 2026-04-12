@@ -1,4 +1,6 @@
 # PhysicsBox
+![CI](https://github.com/krishnatejavedula/physicsbox/actions/workflows/ci.yml/badge.svg)
+![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)
 
 A containerised development environment for C and Python scientific computing. Built on Debian Trixie, designed to work identically on macOS, Linux, and Windows via VS Code Dev Containers.
 
