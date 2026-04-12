@@ -38,7 +38,7 @@ conda list -n physicsbox
 > **Windows:** Clone this repo from inside a WSL2 terminal, not from Windows Explorer or PowerShell. This keeps files on the Linux filesystem and avoids slow cross-boundary I/O.
 >
 > ```bash
-> git clone <your repo url> ~/Apps/physicsbox
+> git clone https://github.com/krishnatejavedula/physicsbox.git ~/Apps/physicsbox
 > cd ~/Apps/physicsbox
 > code .
 > ```
@@ -70,7 +70,7 @@ physicsbox/
 ## Setup
 
 ```bash
-git clone <your repo url> ~/Apps/physicsbox
+git clone https://github.com/krishnatejavedula/physicsbox.git ~/Apps/physicsbox
 cd ~/Apps/physicsbox
 chmod +x setup.sh entrypoint.sh
 ./setup.sh --install
