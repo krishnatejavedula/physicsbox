@@ -2,6 +2,14 @@
 # Description: Multistage build for C and Python physics/math/stats work.
 #              Designed for use with VS Code Dev Containers on Mac and Linux.
 # Base: Debian Trixie (testing) - ships GCC 14, up-to-date physics libs.
+#
+# Build variants:
+#   lean (default) : core physics/math stack  - ~1.5 GB
+#   full           : complete package list     - ~4.5 GB
+#
+# Usage:
+#   docker compose build                          # lean (default)
+#   docker compose build --build-arg BUILD=full   # full
 
 ##########################################################################
 #                           Stage 1: Build Stage
@@ -9,21 +17,11 @@
 # Base: Debian Trixie Slim
 # - Installs Miniforge3 and builds the Conda environment.
 # - Only the /opt/conda tree is carried into the runtime stage.
-#
-# Build variants:
-#   lean (default) : core physics/math stack  - ~2.5 GB
-#   full           : complete package list     - ~4.5 GB
-#
-# Usage:
-#   docker compose build                          # lean (default)
-#   docker compose build --build-arg BUILD=full   # full
 
 FROM debian:trixie-slim AS build
 
-# Build variant - lean or full
 ARG BUILD=lean
 
-# Minimal tools needed to bootstrap conda
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         bzip2 \
@@ -33,7 +31,6 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Miniforge3 (replaces the deprecated Mambaforge)
 ENV MINIFORGE_URL="https://github.com/conda-forge/miniforge/releases/latest/download"
 RUN wget "${MINIFORGE_URL}/Miniforge3-Linux-$(uname -m).sh" -O /tmp/miniforge.sh && \
     bash /tmp/miniforge.sh -b -p /opt/conda && \
@@ -42,21 +39,17 @@ RUN wget "${MINIFORGE_URL}/Miniforge3-Linux-$(uname -m).sh" -O /tmp/miniforge.sh
 ENV PATH=/opt/conda/bin:$PATH
 ENV CONDA_PREFIX=/opt/conda
 
-# Bootstrap: update conda/mamba and pin solver
 RUN conda config --set always_yes yes && \
     conda update -n base conda && \
     conda install -n base -c conda-forge mamba
 
-# Copy environment files
 COPY environment.lean.yml /tmp/environment.lean.yml
 COPY environment.full.yml /tmp/environment.full.yml
 
-# Create the physicsbox conda environment from selected variant
 RUN mamba env create -f /tmp/environment.${BUILD}.yml && \
     mamba clean -a -y && \
     rm -rf ${CONDA_PREFIX}/pkgs/*
 
-# Group-writable so the runtime user can use it
 RUN chmod -R g+rwx ${CONDA_PREFIX}
 
 ##########################################################################
@@ -69,8 +62,6 @@ RUN chmod -R g+rwx ${CONDA_PREFIX}
 
 FROM debian:trixie-slim AS runtime
 
-# System packages - grouped by purpose for readability
-# (no inline comments inside the apt block - they break the shell command)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         build-essential \
@@ -125,9 +116,9 @@ RUN apt-get update && \
     dpkg-reconfigure --frontend=noninteractive locales && \
     update-locale LANG=en_US.UTF-8
 
-ENV LANG en_US.UTF-8  
-ENV LANGUAGE en_US:en   
-ENV LC_ALL en_US.UTF-8
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
+ENV LC_ALL=en_US.UTF-8
 
 # Create wheel group and dev user
 # USER stays root so the entrypoint can handle dynamic UID remapping.
@@ -140,11 +131,20 @@ RUN groupadd wheel && \
 # Copy conda from build stage
 COPY --from=build --chown=root:wheel /opt/conda /opt/conda
 
-# Copy entrypoint, bashrc and vimrc
+# Create /etc/physicsbox before copying files into it
+RUN mkdir -p /etc/physicsbox
+
+# Copy entrypoint, shell config, and environment files
 COPY entrypoint.sh /opt/entrypoint.sh
 COPY .bashrc /etc/physicsbox/bashrc
-COPY .vimrc /etc/physicsbox/vimrc
+COPY .vimrc  /etc/physicsbox/vimrc
+COPY environment.lean.yml /etc/physicsbox/environment.lean.yml
+COPY environment.full.yml /etc/physicsbox/environment.full.yml
 RUN chmod +x /opt/entrypoint.sh
+
+# Write build variant marker so --doctor knows which env file to validate against
+ARG BUILD=lean
+RUN echo "${BUILD}" > /etc/physicsbox/build_variant
 
 # Create shared directories (ownership set at runtime by entrypoint)
 RUN mkdir -p /shared /workspace
@@ -152,11 +152,9 @@ RUN mkdir -p /shared /workspace
 ENV PATH=/opt/conda/bin:$PATH
 ENV CONDA_PREFIX=/opt/conda
 
-# Expose Jupyter and code-server ports
 EXPOSE 8888 8080
 
 WORKDIR /home/dev
 
-# Root at startup - entrypoint handles UID fix then drops to dev
 ENTRYPOINT ["/opt/entrypoint.sh"]
 CMD ["/bin/bash"]

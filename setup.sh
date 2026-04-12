@@ -36,13 +36,23 @@ check_docker_running() {
 }
 
 # -----------------------------------------------------------------------------
-# --install
+# --install [lean|full]
 # -----------------------------------------------------------------------------
 cmd_install() {
+  local build="lean"
+
+  for arg in "${@:2}"; do
+    case "$arg" in
+      lean|full) build="$arg" ;;
+    esac
+  done
+
   echo ""
   echo "  ╔═══════════════════════════════════════╗"
   echo "  ║   PhysicsBox - Install                ║"
   echo "  ╚═══════════════════════════════════════╝"
+  echo ""
+  info "Build : $build"
   echo ""
 
   echo "[ 1/3 ] Checking prerequisites..."
@@ -62,12 +72,16 @@ cmd_install() {
     fi
   done
 
+  # Ensure scripts are executable
+  chmod +x "$SCRIPT_DIR/entrypoint.sh" "$SCRIPT_DIR/setup.sh"
+  ok "entrypoint.sh is executable"
+
   echo ""
-  echo "[ 3/3 ] Building PhysicsBox image..."
+  echo "[ 3/3 ] Building PhysicsBox image ($build)..."
   info "This takes 10-20 minutes on first run."
   echo ""
   cd "$SCRIPT_DIR"
-  docker compose build
+  docker compose build --build-arg BUILD="${build}"
 
   echo ""
   echo "  ╔═══════════════════════════════════════════════════════╗"
@@ -127,23 +141,30 @@ cmd_uninstall() {
 }
 
 # -----------------------------------------------------------------------------
-# --rebuild [--clean]
+# --rebuild [lean|full] [--clean]
 # -----------------------------------------------------------------------------
 cmd_rebuild() {
+  local build="lean"
   local clean=false
-  [[ "${2:-}" == "--clean" ]] && clean=true
+
+  for arg in "${@:2}"; do
+    case "$arg" in
+      lean|full) build="$arg" ;;
+      --clean)   clean=true   ;;
+    esac
+  done
 
   echo ""
   echo "  ╔═══════════════════════════════════════╗"
   echo "  ║   PhysicsBox - Rebuild                ║"
   echo "  ╚═══════════════════════════════════════╝"
   echo ""
-
+  info "Build : $build"
   if $clean; then
-    info "Mode: clean build (--no-cache) - all layers rebuilt from scratch"
+    info "Mode  : clean (--no-cache)"
   else
-    info "Mode: cached build - only changed layers rebuilt"
-    info "Use './setup.sh --rebuild --clean' to force a full clean rebuild"
+    info "Mode  : cached - only changed layers rebuilt"
+    info "Use --clean for a full rebuild from scratch"
   fi
   echo ""
 
@@ -159,11 +180,11 @@ cmd_rebuild() {
   fi
 
   echo ""
-  echo "[ 2/3 ] Rebuilding image..."
+  echo "[ 2/3 ] Rebuilding image ($build)..."
   if $clean; then
-    docker compose build --no-cache
+    docker compose build --no-cache --build-arg BUILD="${build}"
   else
-    docker compose build
+    docker compose build --build-arg BUILD="${build}"
   fi
 
   echo ""
@@ -180,7 +201,6 @@ cmd_rebuild() {
   ok "Rebuild complete. Run 'docker compose up -d' or reopen in VS Code."
   echo ""
 }
-
 # -----------------------------------------------------------------------------
 # --doctor
 # -----------------------------------------------------------------------------
@@ -273,7 +293,7 @@ cmd_doctor() {
   echo ""
   echo "[ Environment ]"
   if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-    if docker exec "$CONTAINER_NAME" conda run -n physicsbox python -c "import numpy, scipy, astropy" &>/dev/null 2>&1; then
+    if docker exec "$CONTAINER_NAME" conda run -n physicsbox python -c "import numpy, scipy" &>/dev/null 2>&1; then
       ok "Python environment (physicsbox) is healthy"
       PYVER=$(docker exec "$CONTAINER_NAME" conda run -n physicsbox python --version 2>&1)
       ok "$PYVER"
@@ -297,6 +317,51 @@ cmd_doctor() {
       fail "GCC not found in container"
       ISSUES=$((ISSUES + 1))
     fi
+
+    # Conda environment integrity check
+    echo ""
+    echo "[ Conda Packages ]"
+    BUILD_VARIANT=$(docker exec "$CONTAINER_NAME" cat /etc/physicsbox/build_variant 2>/dev/null || echo "lean")
+    ok "Build variant: $BUILD_VARIANT"
+    ENV_FILE="/etc/physicsbox/environment.${BUILD_VARIANT}.yml"
+
+    # Extract expected packages from environment file and check each one
+    MISSING_PKGS=()
+    EXPECTED=$(docker exec "$CONTAINER_NAME" \
+      conda run -n physicsbox python -c "
+import yaml, sys
+with open('$ENV_FILE') as f:
+    env = yaml.safe_load(f)
+deps = env.get('dependencies', [])
+pkgs = []
+for d in deps:
+    if isinstance(d, str) and d != 'pip':
+        pkgs.append(d.split('=')[0])
+print('\n'.join(pkgs))
+" 2>/dev/null)
+
+    INSTALLED=$(docker exec "$CONTAINER_NAME" \
+      conda run -n physicsbox conda list --no-pip -q 2>/dev/null | awk 'NR>3 {print $1}')
+
+    while IFS= read -r pkg; do
+      [ -z "$pkg" ] && continue
+      if echo "$INSTALLED" | grep -qi "^${pkg}$"; then
+        ok "$pkg"
+      else
+        fail "$pkg missing  →  run: conda install $pkg -c conda-forge"
+        MISSING_PKGS+=("$pkg")
+        ISSUES=$((ISSUES + 1))
+      fi
+    done <<< "$EXPECTED"
+
+    if [ ${#MISSING_PKGS[@]} -gt 0 ]; then
+      echo ""
+      info "To install all missing packages at once:"
+      echo "      conda install ${MISSING_PKGS[*]} -c conda-forge"
+      info "To rebuild the image cleanly:"
+      echo "      ./setup.sh --rebuild ${BUILD_VARIANT} --clean"
+    fi
+
   else
     info "Container not running - skipping environment checks"
     info "Start with 'docker compose up -d' then re-run --doctor"
@@ -317,20 +382,27 @@ cmd_doctor() {
 # Entry point
 # -----------------------------------------------------------------------------
 case "${1:-}" in
-  --install)   cmd_install   ;;
-  --uninstall) cmd_uninstall ;;
-  --rebuild)   cmd_rebuild "$@" ;;
-  --doctor)    cmd_doctor    ;;
+  --install)   cmd_install "$@"  ;;
+  --uninstall) cmd_uninstall     ;;
+  --rebuild)   cmd_rebuild "$@"  ;;
+  --doctor)    cmd_doctor        ;;
   *)
     echo ""
-    echo "  Usage: ./setup.sh [flag]"
+    echo "  Usage: ./setup.sh [flag] [options]"
     echo ""
     echo "  Flags:"
-    echo "    --install          First-time setup: create directories and build image"
-    echo "    --uninstall        Remove container and image (workspace/ and shared/ untouched)"
-    echo "    --rebuild          Rebuild using cache - only changed layers rebuilt (fast)"
-    echo "    --rebuild --clean  Full clean rebuild from scratch (slow but thorough)"
-    echo "    --doctor           Check everything is installed and working correctly"
+    echo "    --install [lean|full]           First-time setup (default: lean)"
+    echo "    --uninstall                     Remove container and image (files untouched)"
+    echo "    --rebuild [lean|full] [--clean] Rebuild image (default: lean, cached)"
+    echo "    --doctor                        Check everything is working correctly"
+    echo ""
+    echo "  Examples:"
+    echo "    ./setup.sh --install              # lean - recommended for students"
+    echo "    ./setup.sh --install full         # full - for your own machine"
+    echo "    ./setup.sh --rebuild              # lean, cached (fast)"
+    echo "    ./setup.sh --rebuild full         # full, cached"
+    echo "    ./setup.sh --rebuild --clean      # lean, no cache"
+    echo "    ./setup.sh --rebuild full --clean # full, no cache"
     echo ""
     ;;
 esac
