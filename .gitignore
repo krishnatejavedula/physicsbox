@@ -1,10 +1,11 @@
 # =============================================================================
-# .gitignore - PhysicsBox
+# .gitignore — PhysicsBox
 # =============================================================================
 
-# Local work - not shared via git
+# Local overrides — not shared via git
 workspace/
 shared/
+docker-compose.override.yml
 
 # VS Code local settings (devcontainer.json is committed, these are not)
 .vscode/

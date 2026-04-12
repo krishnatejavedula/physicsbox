@@ -1,0 +1,14 @@
+# docker-compose.override.yml
+# ============================================================
+# Local overrides - not committed to git.
+# Copy this file to docker-compose.override.yml and add your
+# personal volume mounts here.
+# Docker Compose picks this up automatically alongside
+# docker-compose.yml - no extra flags needed.
+# ============================================================
+
+services:
+  physicsbox:
+    volumes:
+      - /path/to/your/project:/workspace/myproject
+      - /path/to/another/project:/workspace/anotherproject

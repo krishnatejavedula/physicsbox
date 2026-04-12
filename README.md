@@ -52,18 +52,49 @@ physicsbox/
 ├── .devcontainer/
 │   └── devcontainer.json        # VS Code Dev Containers configuration
 ├── workspace/                   # Your code - bind-mounted into the container
-├── shared/                      # Data files and outputs - bind-mounted into the container
-├── Dockerfile                   # Multistage image definition
-├── entrypoint.sh                # Container startup script
-├── docker-compose.yml           # Service, volume, and port configuration
-├── environment.lean.yml         # Lean conda environment
-├── environment.full.yml         # Full conda environment
-├── .bashrc                      # Shell configuration baked into the image
-├── setup.sh                     # Management script
+├── shared/                          # Data files and outputs - bind-mounted into the container
+├── Dockerfile                       # Multistage image definition
+├── entrypoint.sh                    # Container startup script
+├── docker-compose.yml               # Service, volume, and port configuration
+├── docker-compose.override.yml.example  # Template for local volume overrides
+├── environment.lean.yml             # Lean conda environment
+├── environment.full.yml             # Full conda environment
+├── .bashrc                          # Shell configuration baked into the image
+├── setup.sh                         # Management script
 └── README.md
 ```
 
 `workspace/` and `shared/` live on your host machine and survive container rebuilds and image deletions entirely. Keep all work there.
+
+---
+
+## Mounting additional folders
+
+If you have existing project folders outside `workspace/` that you want to access inside the container, use a local override file rather than editing `docker-compose.yml` - this keeps your personal paths out of the shared repo.
+
+Copy the example file:
+
+```bash
+cp docker-compose.override.yml.example docker-compose.override.yml
+```
+
+Edit it with your actual paths:
+
+```yaml
+services:
+  physicsbox:
+    volumes:
+      - /path/to/your/project:/workspace/myproject
+      - /path/to/another:/workspace/another
+```
+
+Then restart the container:
+
+```bash
+docker compose down && docker compose up -d
+```
+
+`docker-compose.override.yml` is gitignored - it stays on your machine and is never committed to the repo. The `.example` file is the shared template.
 
 ---
 
