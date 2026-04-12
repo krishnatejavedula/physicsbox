@@ -34,7 +34,8 @@
         "mathematic.vscode-pdf",
         "yzhang.markdown-all-in-one",
         "continue.continue",
-        "Zwyx.remotetrash"
+        "Zwyx.remotetrash",
+        "h5web.vscode-h5web"
       ],
       "settings": {
         "python.defaultInterpreterPath": "/opt/conda/envs/physicsbox/bin/python",
