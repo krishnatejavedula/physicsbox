@@ -134,13 +134,15 @@ COPY --from=build --chown=root:wheel /opt/conda /opt/conda
 # Create /etc/physicsbox before copying files into it
 RUN mkdir -p /etc/physicsbox
 
-# Copy entrypoint, shell config, and environment files
+# Copy entrypoint, shell config, environment files and tests
 COPY entrypoint.sh /opt/entrypoint.sh
 COPY .bashrc /etc/physicsbox/bashrc
 COPY .vimrc  /etc/physicsbox/vimrc
 COPY environment.lean.yml /etc/physicsbox/environment.lean.yml
 COPY environment.full.yml /etc/physicsbox/environment.full.yml
-RUN chmod +x /opt/entrypoint.sh
+COPY tests/ /opt/physicsbox/tests/
+RUN chmod +x /opt/entrypoint.sh && \
+    chmod +x /opt/physicsbox/tests/*.sh
 
 # Write build variant marker so --doctor knows which env file to validate against
 ARG BUILD=lean
