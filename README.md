@@ -13,6 +13,13 @@ Inspired by [FermiBottle](https://github.com/fermi-lat/FermiBottle), the Docker-
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 - [VS Code](https://code.visualstudio.com/) with the **Dev Containers** extension
+- **Windows only:** Git for Windows (includes Git Bash) — open PowerShell and run:
+
+```powershell
+winget install -e --id Git.Git
+winget install -e --id Docker.DockerDesktop
+winget install -e --id Microsoft.VisualStudioCode
+```
 
 ---
 

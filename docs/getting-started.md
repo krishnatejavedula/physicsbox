@@ -9,14 +9,17 @@
 
 ### Windows
 
-- [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop/) — sets up WSL2 automatically, no manual WSL configuration needed
+- [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop/)
 - [VS Code](https://code.visualstudio.com/) with the **Dev Containers** extension
+- Git for Windows (includes Git Bash) - installed via the one-liner below
 
-> `make` is available on Mac and Linux by default. Windows users running from a WSL2 terminal also have it available.
+> All commands on Windows are run from **Git Bash**, not PowerShell or Command Prompt. Git Bash gives you a bash terminal that works identically to Mac and Linux.
 
 ---
 
 ## Installation
+
+### macOS and Linux
 
 ```bash
 git clone https://github.com/krishnatejavedula/physicsbox.git ~/Apps/physicsbox
@@ -24,11 +27,6 @@ cd ~/Apps/physicsbox
 chmod +x setup.sh entrypoint.sh
 make install
 ```
-
-The install script will:
-1. Check Docker is installed and running
-2. Create `workspace/` and `shared/` on your host
-3. Build the Docker image (10–20 minutes on first run)
 
 Then open in VS Code:
 
@@ -38,15 +36,27 @@ code ~/Apps/physicsbox
 
 VS Code will prompt **Reopen in Container** in the bottom-right corner. Click it. If you miss the prompt press `F1` → **Dev Containers: Reopen in Container**.
 
-VS Code installs its server inside the container on first connection — this takes a minute or two. After that reopening is instant.
-
 ---
 
-## Windows setup
+### Windows
 
-Clone the repo from inside a WSL2 terminal — not from Windows Explorer or PowerShell. This keeps files on the Linux filesystem and avoids slow cross-boundary I/O.
+**Step 1 - Install prerequisites**
 
-Open a WSL2 terminal and run:
+Open PowerShell and run:
+
+```powershell
+winget install -e --id Git.Git
+winget install -e --id Docker.DockerDesktop
+winget install -e --id Microsoft.VisualStudioCode
+```
+
+Restart your machine after installation completes.
+
+**Step 2 - Open Git Bash**
+
+Search for **Git Bash** in the Start menu and open it. All remaining steps are done here - never in PowerShell or Command Prompt.
+
+**Step 3 - Clone and install**
 
 ```bash
 git clone https://github.com/krishnatejavedula/physicsbox.git ~/Apps/physicsbox
@@ -55,7 +65,7 @@ chmod +x setup.sh entrypoint.sh
 make install
 ```
 
-Then open VS Code from the same terminal:
+**Step 4 - Open in VS Code**
 
 ```bash
 code ~/Apps/physicsbox
@@ -63,4 +73,4 @@ code ~/Apps/physicsbox
 
 Click **Reopen in Container** when prompted.
 
-> Docker Desktop for Windows sets up WSL2 automatically — no manual WSL configuration needed. Just install Docker Desktop, open a WSL2 terminal, and follow the steps above.
+> From this point on, all commands (`make start`, `make stop`, `./setup.sh`, etc.) are run from Git Bash. The workflow is identical to Mac and Linux.
